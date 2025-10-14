@@ -82,11 +82,12 @@ REPL_COMMANDS = {
 def _more_lines(console: code.InteractiveConsole, unicodetext: str) -> bool:
     # ooh, look at the hack:
     src = _strip_final_indent(unicodetext)
+    lines = src.splitlines(keepends=True)
+    is_one_liner = len(lines) == 1
     try:
         code = console.compile(src, "<stdin>", "single")
     except (OverflowError, SyntaxError, ValueError):
-        lines = src.splitlines(keepends=True)
-        if len(lines) == 1:
+        if is_one_liner:
             return False
 
         last_line = lines[-1]
@@ -95,6 +96,12 @@ def _more_lines(console: code.InteractiveConsole, unicodetext: str) -> bool:
         incomplete = not last_line.endswith("\n")
         return (was_indented or not_empty) and incomplete
     else:
+        if is_one_liner:
+            try:
+                compile(src, "<stdin>", "exec")
+                return False
+            except SyntaxError:
+                pass
         return code is None
 
 
